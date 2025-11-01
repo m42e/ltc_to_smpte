@@ -10,14 +10,16 @@ Fast, lossless metadata injection for professional workflows (edit conforming, b
 1. [Features](#features)
 2. [How It Works](#how-it-works)
 3. [Prerequisites](#prerequisites)
-4. [Install Dependencies](#install-dependencies)
+4. [Usage](#usage)
 5. [Set Up Python with Astral uv](#set-up-python-with-astral-uv)
-6. [Usage](#usage)
-7. [Examples](#examples)
-8. [Verification](#verification)
-9. [Performance](#performance)
-10. [Troubleshooting](#troubleshooting)
-11. [Roadmap / Ideas](#roadmap--ideas)
+6. [Examples](#examples)
+7. [Verification](#verification)
+8. [Performance](#performance)
+9. [Troubleshooting](#troubleshooting)
+10. [Roadmap / Ideas](#roadmap--ideas)
+11. [License / Attribution](#license--attribution)
+12. [Install Dependencies](#install-dependencies)
+13. [Quick Start (TL;DR)](#quick-start-tldr)
 
 ---
 
@@ -55,6 +57,47 @@ You need:
 > If you prefer not to manage virtual environments manually, this guide uses **[Astral uv](https://github.com/astral-sh/uv)** for ultra-fast Python environment & dependency management.
 
 ---
+
+## Usage
+
+Basic invocation:
+
+```bash
+uv run ltc_to_smpte.py input_video.mp4 -o output_video_with_tc.mp4
+```
+
+Show help:
+
+```bash
+uv run ltc_to_smpte.py --help
+```
+
+### Expected Workflow
+
+1. Ensure channel 2 of the source video’s audio track contains a valid LTC signal.
+2. Run the script; it extracts mono LTC WAV.
+3. Decoding occurs (prefers `ltcdump`).
+4. Output file is written with `timecode` metadata.
+
+---
+
+## Set Up Python with Astral uv
+
+### Install uv
+
+macOS / Linux:
+
+```bash
+curl -LsSf https://astral.sh/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://astral.sh/install.ps1 | iex
+```
+
+Restart your shell if `uv` is not immediately available.
 
 ## Install Dependencies
 
@@ -156,7 +199,7 @@ wsl bash -lc 'git clone https://github.com/x42/ltc-tools.git && cd ltc-tools && 
 wsl ltcdump --help || echo "ltcdump built inside WSL"
 ```
 
-### Verification
+### Dependency Verification
 
 ```bash
 ffmpeg -version || echo "ffmpeg missing" 
@@ -164,47 +207,6 @@ ltcdump --help || echo "ltcdump missing (fallback decoder will be used)"
 ```
 
 > If `ltcdump` is not available after attempting install, the script will automatically use its internal LTC decoder.
-
----
-
-## Set Up Python with Astral uv
-
-### Install uv
-
-macOS / Linux:
-
-```bash
-curl -LsSf https://astral.sh/install.sh | sh
-```
-
-Windows (PowerShell):
-
-```powershell
-irm https://astral.sh/install.ps1 | iex
-```
-
-Restart your shell if `uv` is not immediately available.
-
-## Usage
-
-Basic invocation:
-
-```bash
-uv run ltc_to_smpte.py input_video.mp4 -o output_video_with_tc.mp4
-```
-
-Show help:
-
-```bash
-uv run ltc_to_smpte.py --help
-```
-
-### Expected Workflow
-
-1. Ensure channel 2 of the source video’s audio track contains a valid LTC signal.
-2. Run the script; it extracts mono LTC WAV.
-3. Decoding occurs (prefers `ltcdump`).
-4. Output file is written with `timecode` metadata.
 
 ---
 
