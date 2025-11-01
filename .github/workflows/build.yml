@@ -44,9 +44,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
-      - name: Build CLI (PyInstaller)
-        run: pyinstaller --onefile --name ltc_to_smpte ltc_to_smpte.py
-
       - name: Build GUI (PyInstaller)
         run: pyinstaller --onefile --windowed --name timecode_gui timecode_gui.py
 
@@ -64,7 +61,40 @@ jobs:
       - name: Import GUI module
         run: python -c "import timecode_gui; print('GUI import OK')"
 
+      - name: Download static ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p ffmpeg_bundle
+          curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ffmpeg.tar.xz
+          tar -xf ffmpeg.tar.xz --strip-components=1 -C ffmpeg_bundle
+          ls ffmpeg_bundle | grep ffmpeg || echo "ffmpeg not found"
+
+      - name: Download static ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p ffmpeg_bundle
+          curl -L https://evermeet.cx/ffmpeg/ffmpeg-6.1.1.zip -o ffmpeg.zip || true
+          unzip -o ffmpeg.zip -d ffmpeg_bundle || true
+          # evermeet may provide only ffmpeg; attempt ffprobe
+          curl -L https://evermeet.cx/ffmpeg/ffprobe-6.1.1.zip -o ffprobe.zip || true
+          unzip -o ffprobe.zip -d ffmpeg_bundle || true
+          ls ffmpeg_bundle | grep ffmpeg || echo "ffmpeg not found"
+
+      - name: Download static ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mkdir ffmpeg_bundle
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-6.1.1-essentials_build.zip" -OutFile ffmpeg.zip
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path ffmpeg.zip), (Resolve-Path ffmpeg_bundle))
+          Get-ChildItem -Recurse ffmpeg_bundle | Where-Object {$_.Name -match 'ffmpeg.exe'} | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName ffmpeg_bundle\ffmpeg.exe }
+          Get-ChildItem -Recurse ffmpeg_bundle | Where-Object {$_.Name -match 'ffprobe.exe'} | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName ffmpeg_bundle\ffprobe.exe }
+          dir ffmpeg_bundle
+
       - name: Package artifacts
+        env:
+          BUNDLE_FFMPEG: 1
         run: python scripts/package.py
 
       - name: Upload packaged artifact

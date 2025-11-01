@@ -12,7 +12,9 @@ This script:
   * Creates README_DISTRIBUTION.md subset of main README
   * Zips everything to ltc_to_smpte_<platform>_<arch>.zip
 
-External tools (ffmpeg, ltcdump) are NOT bundled; user must have them installed.
+External tools: by default ffmpeg/ffprobe are not bundled. If env var BUNDLE_FFMPEG=1
+is set and ffmpeg/ffprobe are found (or placed in ffmpeg_bundle/), they are copied
+into the archive under `ffmpeg/` with a minimal NOTICE.
 """
 from __future__ import annotations
 import hashlib
@@ -20,6 +22,7 @@ import platform
 import shutil
 import sys
 import zipfile
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,6 +96,36 @@ def main():
             digest = sha256_file(BUILD / artifact)
             f.write(f"{digest}  {artifact}\n")
 
+    # Optional ffmpeg bundling
+    if os.environ.get("BUNDLE_FFMPEG") == "1":
+        ffmpeg_dir = BUILD / "ffmpeg"
+        ffmpeg_dir.mkdir(exist_ok=True)
+        bundle_src = ROOT / "ffmpeg_bundle"
+        copied: list[str] = []
+        if bundle_src.exists():
+            for item in bundle_src.iterdir():
+                if item.is_file() and (item.name.startswith("ffmpeg") or item.name.startswith("ffprobe")):
+                    shutil.copy2(item, ffmpeg_dir / item.name)
+                    copied.append(item.name)
+        else:
+            for bin_name in ["ffmpeg", "ffprobe"]:
+                path = shutil.which(bin_name)
+                if path:
+                    shutil.copy2(path, ffmpeg_dir / bin_name)
+                    copied.append(bin_name)
+        notice = ffmpeg_dir / "NOTICE.txt"
+        notice.write_text(
+            "This distribution includes ffmpeg binaries for user convenience.\n"
+            "ffmpeg is licensed under LGPL/GPL depending on build configuration.\n"
+            "Project: https://ffmpeg.org | Legal: https://ffmpeg.org/legal.html\n"
+            f"Included files: {', '.join(copied) if copied else 'NONE'}\n",
+            encoding="utf-8"
+        )
+        with checksums_path.open('a', encoding='utf-8') as f:
+            for item in copied + ["NOTICE.txt"]:
+                digest = sha256_file(ffmpeg_dir / item)
+                f.write(f"{digest}  ffmpeg/{item}\n")
+
     plat = platform.system().lower()
     arch = platform.machine().lower()
     zip_name = f"ltc_to_smpte_{plat}_{arch}.zip"
@@ -102,7 +135,11 @@ def main():
 
     with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as z:
         for p in BUILD.iterdir():
-            z.write(p, p.name)
+            if p.is_dir():
+                for sub in p.rglob('*'):
+                    z.write(sub, sub.relative_to(BUILD).as_posix())
+            else:
+                z.write(p, p.name)
 
     print(f"Created artifact: {zip_path}")
 
