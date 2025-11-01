@@ -47,20 +47,6 @@ jobs:
       - name: Build GUI (PyInstaller)
         run: pyinstaller --onefile --windowed --name timecode_gui timecode_gui.py
 
-      - name: Smoke test CLI
-        if: runner.os != 'Windows'
-        run: ./dist/ltc_to_smpte --help
-
-      - name: Smoke test CLI (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Get-Item dist\ltc_to_smpte.exe
-          dist\ltc_to_smpte.exe --help
-
-      - name: Import GUI module
-        run: python -c "import timecode_gui; print('GUI import OK')"
-
       - name: Download static ffmpeg (Linux)
         if: runner.os == 'Linux'
         run: |

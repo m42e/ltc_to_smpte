@@ -2,7 +2,6 @@
 """Package built PyInstaller executables into a distributable zip.
 
 Expected prior steps:
-  pyinstaller --onefile --name ltc_to_smpte ltc_to_smpte.py
   pyinstaller --onefile --windowed --name timecode_gui timecode_gui.py
 
 This script:
@@ -31,7 +30,6 @@ BUILD = ROOT / "build_dist"
 README = ROOT / "README.md"
 LICENSE = ROOT / "LICENSE"
 
-CLI_NAME = "ltc_to_smpte"
 GUI_NAME = "timecode_gui"
 
 def sha256_file(path: Path) -> str:
@@ -67,9 +65,8 @@ def main():
         sys.exit(1)
 
     exe_suffix = ".exe" if platform.system() == "Windows" else ""
-    cli_exec = DIST / f"{CLI_NAME}{exe_suffix}"
     gui_exec = DIST / f"{GUI_NAME}{exe_suffix}"
-    if not cli_exec.exists() or not gui_exec.exists():
+    if not gui_exec.exists():
         print("Required executables not found in dist/", file=sys.stderr)
         sys.exit(1)
 
@@ -78,7 +75,6 @@ def main():
     BUILD.mkdir(parents=True)
 
     # Copy binaries
-    shutil.copy2(cli_exec, BUILD / cli_exec.name)
     shutil.copy2(gui_exec, BUILD / gui_exec.name)
 
     # Copy license
@@ -92,7 +88,7 @@ def main():
     # Checksums
     checksums_path = BUILD / "CHECKSUMS.txt"
     with checksums_path.open('w', encoding='utf-8') as f:
-        for artifact in [cli_exec.name, gui_exec.name]:
+        for artifact in [gui_exec.name]:
             digest = sha256_file(BUILD / artifact)
             f.write(f"{digest}  {artifact}\n")
 
