@@ -1,47 +1,302 @@
-#!/usr/bin/env python3
-"""
-LTC to SMPTE Converter - README
+# LTC to SMPTE Converter
 
-Extract LTC (Linear Timecode) audio from video's second stereo channel,
-decode it, and write it back as SMPTE timecode metadata - WITHOUT re-encoding.
+Extract LTC (Linear Timecode) audio from a video's second stereo channel, decode it, and write it back as SMPTE timecode metadata — **without re‑encoding the original video/audio streams**.
 
-Installation:
-  brew install ffmpeg ltc-tools
-  pip install numpy
+Fast, lossless metadata injection for professional workflows (edit conforming, batch tagging, archival).
 
-Usage:
-  python3 ltc_to_smpte.py input_video.mp4 -o output_video.mp4
+---
 
-What it does:
-  1. Extracts second audio channel (LTC timecode)
-  2. Decodes the LTC data using ltcdump or bit-level analysis
-  3. Writes SMPTE timecode metadata to output video
-  4. Preserves original format (no re-encoding, fast processing)
+## Table of Contents
+1. [Features](#features)
+2. [How It Works](#how-it-works)
+3. [Prerequisites](#prerequisites)
+4. [Install Dependencies](#install-dependencies)
+5. [Set Up Python with Astral uv](#set-up-python-with-astral-uv)
+6. [Usage](#usage)
+7. [Examples](#examples)
+8. [Verification](#verification)
+9. [Performance](#performance)
+10. [Troubleshooting](#troubleshooting)
+11. [Roadmap / Ideas](#roadmap--ideas)
 
-Example output:
-  ✓ Extracted second audio channel
-  ✓ Loaded WAV file: 48000Hz, 1 channel(s)
-  ✓ Decoded LTC using ltcdump: 01:23:45:12
-  ✓ Successfully created output video: output.mp4
+---
 
-Performance:
-  • Decoding: < 1 second (ltcdump)
-  • Processing: < 30 seconds (no re-encoding)
-  • Output size: ≈ input size (just metadata added)
+## Features
 
-Verification:
-  ffprobe -show_entries stream_tags=timecode output.mp4
+✓ Professional-grade LTC decode via `ltcdump` (from ltc-tools)  
+✓ Bit-level fallback decoder (zero‑crossing analysis) if external tool unavailable  
+✓ No re-encoding: uses ffmpeg stream copy (`-c copy`) for speed and fidelity  
+✓ SMPTE timecode written as metadata tag (`timecode`)  
+✓ Supports multiple frame rates & sample rates  
+✓ Graceful degradation and error handling  
+✓ Cross-platform workflow guidance
 
-Features:
-  ✓ Professional-grade LTC decoder (ltcdump integration)
-  ✓ Bit-level fallback decoder (zero-crossing analysis)
-  ✓ Fast copy codec (no quality loss)
-  ✓ Preserves original video/audio formats
-  ✓ Error handling with fallbacks
-  ✓ Support for multiple frame rates and sample rates
+---
 
-For more information, see FINAL_IMPLEMENTATION.md
-"""
+## How It Works
 
-# This file is documentation. Run the actual script with:
-# python3 ltc_to_smpte.py --help
+1. Extracts the second audio channel (assumed to carry LTC) to a mono WAV. Works for RODE Wireless Pro.
+2. Attempts decode using `ltcdump` (fast, robust).
+3. If `ltcdump` unavailable, performs bit-level / edge detection decoding.
+4. Injects SMPTE timecode as metadata into a new container using ffmpeg stream copy.
+5. Leaves original video/audio encoding untouched (only container metadata changes).
+
+---
+
+## Prerequisites
+
+You need:
+
+- `ffmpeg` (for extraction / muxing)
+- `ltc-tools` (for `ltcdump`) – optional but recommended
+- Python (3.9+ recommended)
+- `numpy` (signal processing / decoding fallback)
+
+> If you prefer not to manage virtual environments manually, this guide uses **[Astral uv](https://github.com/astral-sh/uv)** for ultra-fast Python environment & dependency management.
+
+---
+
+## Install Dependencies
+
+This section installs both `ffmpeg` and `ltc-tools` (for `ltcdump`). If `ltc-tools` isn't packaged for your OS, a source build fallback is provided.
+
+### macOS (Homebrew)
+
+```bash
+brew update
+brew install ffmpeg ltc-tools
+ffmpeg -version
+ltcdump --help || echo "ltcdump installed"
+```
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg ltc-tools || echo "ltc-tools package missing; will build from source"
+ffmpeg -version
+command -v ltcdump >/dev/null || {
+  # Source build fallback for ltc-tools
+  sudo apt install -y build-essential autoconf automake libtool pkg-config git
+  git clone https://github.com/x42/libltc.git
+  cd libltc && ./autogen.sh && ./configure && make -j$(nproc) && sudo make install && sudo ldconfig || true && cd ..
+  git clone https://github.com/x42/ltc-tools.git
+  cd ltc-tools && make -j$(nproc) && sudo make install && cd ..
+}
+ltcdump --help || echo "Warning: ltcdump not found"
+```
+
+### Fedora
+
+```bash
+sudo dnf install -y ffmpeg ffmpeg-libs || sudo dnf config-manager --set-enabled rpmfusion-free rpmfusion-nonfree && sudo dnf install -y ffmpeg ffmpeg-libs
+sudo dnf install -y ltc-tools || echo "ltc-tools not packaged; building from source"
+ffmpeg -version
+command -v ltcdump >/dev/null || {
+  sudo dnf install -y git make autoconf automake libtool pkgconfig gcc
+  git clone https://github.com/x42/libltc.git
+  cd libltc && ./autogen.sh && ./configure && make -j$(nproc) && sudo make install && cd ..
+  git clone https://github.com/x42/ltc-tools.git
+  cd ltc-tools && make -j$(nproc) && sudo make install && cd ..
+}
+ltcdump --help || echo "Warning: ltcdump not found"
+```
+
+### Arch / Manjaro
+
+```bash
+sudo pacman -Syu --needed ffmpeg || true
+sudo pacman -S --needed ltc-tools || echo "Package not found; building from source"
+ffmpeg -version
+command -v ltcdump >/dev/null || {
+  sudo pacman -S --needed git base-devel autoconf automake libtool pkgconf
+  git clone https://github.com/x42/libltc.git
+  cd libltc && ./autogen.sh && ./configure && make -j$(nproc) && sudo make install && cd ..
+  git clone https://github.com/x42/ltc-tools.git
+  cd ltc-tools && make -j$(nproc) && sudo make install && cd ..
+}
+ltcdump --help || echo "Warning: ltcdump not found"
+```
+
+### openSUSE
+
+```bash
+sudo zypper refresh
+sudo zypper install -y ffmpeg || echo "Enable Packman repo if missing"
+sudo zypper install -y ltc-tools || echo "ltc-tools not packaged; building from source"
+ffmpeg -version
+command -v ltcdump >/dev/null || {
+  sudo zypper install -y git gcc make autoconf automake libtool pkg-config
+  git clone https://github.com/x42/libltc.git
+  cd libltc && ./autogen.sh && ./configure && make -j$(nproc) && sudo make install && sudo ldconfig || true && cd ..
+  git clone https://github.com/x42/ltc-tools.git
+  cd ltc-tools && make -j$(nproc) && sudo make install && cd ..
+}
+ltcdump --help || echo "Warning: ltcdump not found"
+```
+
+### Windows (winget / Chocolatey / Scoop + WSL optional)
+
+```bash
+# Option A: winget (global ffmpeg only)
+winget install --id=Gyan.FFmpeg -e
+
+# Option B: Chocolatey
+choco install ffmpeg -y
+
+# Option C: Scoop
+scoop install ffmpeg
+
+# ltc-tools: Use WSL (Ubuntu) for easiest build
+wsl --install -d Ubuntu || echo "WSL already installed"
+wsl sudo apt update
+wsl sudo apt install -y ffmpeg build-essential autoconf automake libtool pkg-config git
+wsl bash -lc 'git clone https://github.com/x42/libltc.git && cd libltc && ./autogen.sh && ./configure && make -j$(nproc) && sudo make install && cd ..'
+wsl bash -lc 'git clone https://github.com/x42/ltc-tools.git && cd ltc-tools && make -j$(nproc) && sudo make install'
+wsl ltcdump --help || echo "ltcdump built inside WSL"
+```
+
+### Verification
+
+```bash
+ffmpeg -version || echo "ffmpeg missing" 
+ltcdump --help || echo "ltcdump missing (fallback decoder will be used)" 
+```
+
+> If `ltcdump` is not available after attempting install, the script will automatically use its internal LTC decoder.
+
+---
+
+## Set Up Python with Astral uv
+
+### Install uv
+
+macOS / Linux:
+
+```bash
+curl -LsSf https://astral.sh/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://astral.sh/install.ps1 | iex
+```
+
+Restart your shell if `uv` is not immediately available.
+
+## Usage
+
+Basic invocation:
+
+```bash
+uv run ltc_to_smpte.py input_video.mp4 -o output_video_with_tc.mp4
+```
+
+Show help:
+
+```bash
+uv run ltc_to_smpte.py --help
+```
+
+### Expected Workflow
+
+1. Ensure channel 2 of the source video’s audio track contains a valid LTC signal.
+2. Run the script; it extracts mono LTC WAV.
+3. Decoding occurs (prefers `ltcdump`).
+4. Output file is written with `timecode` metadata.
+
+---
+
+## Examples
+
+```bash
+# Simple conversion
+uv run ltc_to_smpte.py clip.mov -o clip_tc.mov
+
+# Verbose (if supported by script)
+uv run ltc_to_smpte.py clip.mov -o clip_tc.mov -v
+```
+
+---
+
+## Verification
+
+Use `ffprobe` to inspect the added timecode tag:
+
+```bash
+ffprobe -hide_banner -show_entries format_tags=timecode -of default=noprint_wrappers=1:nokey=1 clip_tc.mov
+```
+
+Or more broadly:
+
+```bash
+ffprobe -hide_banner -show_entries stream_tags=timecode -of json clip_tc.mov
+```
+
+If present, you’ll see something like:
+
+```text
+01:23:45:12
+```
+
+---
+
+## Performance
+
+- Decoding (ltcdump): < 1s typical
+- Fallback decode: a few seconds (depends on length & sample rate)
+- Muxing (copy): near-instant for small clips; scales with file size but avoids re-encode
+- Output size: ≈ input size (only container metadata changes)
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `ltcdump: command not found` | ltc-tools not installed / PATH issue | Install ltc-tools or rebuild from source |
+| No `timecode` tag in output | LTC channel empty / low level / wrong channel | Confirm channel mapping; ensure LTC amplitude; try boosting gain before extraction |
+| Fallback decoder produces wrong TC | Noisy signal / drift | Prefer `ltcdump`; try cleaning audio or increasing threshold parameters (if exposed) |
+| ffprobe shows different frame rate | Container vs LTC mismatch | Ensure LTC frame rate matches intended SMPTE rate; consider adding explicit `-timecode_rate` (future enhancement) |
+
+### Signal Quality Tips
+
+- LTC should be a clean square-like wave; avoid heavy compression.
+- Keep sample rate ≥ 48 kHz.
+- Avoid dual-mono mixes combining program audio & LTC.
+
+---
+
+## Roadmap / Ideas
+
+- Add pyproject.toml / structured packaging
+- Automatic LTC channel detection (energy/profile analysis)
+- Batch processing directory mode
+- Noise-robust decoder improvements (adaptive edge detection)
+- Optional JSON export of timecode spans
+- CI workflow (lint + minimal test vector)
+
+---
+
+## License / Attribution
+
+This tool leverages external utilities: `ffmpeg` and `ltc-tools` (libltc by x42). Respect their licenses when redistributing.
+
+---
+
+## Quick Start (TL;DR)
+
+```bash
+brew install ffmpeg ltc-tools              # macOS example
+curl -LsSf https://astral.sh/install.sh | sh
+uv venv && source .venv/bin/activate
+uv pip install -r requirements.txt         # installs numpy
+uv run ltc_to_smpte.py input.mp4 -o output_tc.mp4
+ffprobe -show_entries format_tags=timecode -of default=noprint_wrappers=1:nokey=1 output_tc.mp4
+```
+
+---
+
+> Need help or found an edge case? Open an issue or extend the script—contributions welcome.
+

@@ -14,7 +14,6 @@ of a video file, decodes it to timecode, and writes it back to the video as SMPT
 Requirements:
     - ffmpeg
     - numpy
-    - opencv-python
     - ltctools (for LTC decoding)
 """
 
@@ -286,7 +285,8 @@ class SMPTEWriter:
             "-i", input_file,
             "-timecode", timecode,
             "-c:v", "copy",  # Copy video stream without re-encoding
-            "-c:a", "copy",  # Copy audio stream without re-encoding
+            "-af", "pan=stereo|c0=c0|c1=c0",  # Copy first channel to both stereo channels
+            "-c:a", "aac",  # Re-encode audio since we're filtering
             "-y",
             output_file
         ]
