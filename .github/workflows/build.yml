@@ -47,8 +47,15 @@ jobs:
         run: pyinstaller --onefile --windowed --name timecode_gui timecode_gui.py
 
       - name: Smoke test CLI
+        if: runner.os != 'Windows'
+        run: ./dist/ltc_to_smpte --help
+
+      - name: Smoke test CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then dist/ltc_to_smpte.exe --help || exit 1; else ./dist/ltc_to_smpte --help || exit 1; fi
+          Get-Item dist\ltc_to_smpte.exe
+          dist\ltc_to_smpte.exe --help
 
       - name: Import GUI module
         run: python -c "import timecode_gui; print('GUI import OK')"
@@ -61,7 +68,7 @@ jobs:
         with:
           name: ltc_to_smpte-${{ runner.os }}-${{ matrix.python-version }}
           path: |
-            ltc_to_smpte_*_${{ runner.os == 'Windows' && 'amd64' || 'x86_64' }}.zip
+            ltc_to_smpte_*.zip
             dist/*
 
   release:
