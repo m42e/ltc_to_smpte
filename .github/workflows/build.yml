@@ -71,7 +71,7 @@ jobs:
         shell: pwsh
         run: |
           mkdir ffmpeg_bundle
-          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-6.1.1-essentials_build.zip" -OutFile ffmpeg.zip
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1.1-essentials_build.zip" -OutFile ffmpeg.zip
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           [System.IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path ffmpeg.zip), (Resolve-Path ffmpeg_bundle))
           Get-ChildItem -Recurse ffmpeg_bundle | Where-Object {$_.Name -match 'ffmpeg.exe'} | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName ffmpeg_bundle\ffmpeg.exe }
