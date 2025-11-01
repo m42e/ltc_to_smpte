@@ -283,7 +283,9 @@ If present, you’ll see something like:
 
 ## License / Attribution
 
-This tool leverages external utilities: `ffmpeg` and `ltc-tools` (libltc by x42). Respect their licenses when redistributing.
+Licensed under the [MIT License](LICENSE). You are free to use, modify, distribute, and sublicense with minimal restriction.
+
+This tool leverages external utilities: `ffmpeg` and `ltc-tools` (libltc by x42). Those projects retain their own licenses; ensure compliance when redistributing combined artifacts.
 
 ---
 
