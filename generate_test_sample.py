@@ -38,9 +38,6 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
-import shutil
-
 
 class TestSampleGenerator:
     """Generates test sample files for LTC processing"""
@@ -118,7 +115,7 @@ class TestSampleGenerator:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             
             if result.returncode != 0:
-                print(f"❌ Error generating LTC audio:")
+                print("❌ Error generating LTC audio:")
                 print(result.stderr)
                 return False
             
@@ -154,7 +151,7 @@ class TestSampleGenerator:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             
             if result.returncode != 0:
-                print(f"❌ Error generating tone audio:")
+                print("❌ Error generating tone audio:")
                 print(result.stderr)
                 return False
             
@@ -202,7 +199,7 @@ class TestSampleGenerator:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             
             if result.returncode != 0:
-                print(f"❌ Error generating test video:")
+                print("❌ Error generating test video:")
                 print(result.stderr)
                 return False
             
@@ -264,7 +261,7 @@ class TestSampleGenerator:
         Returns:
             True if all generation successful, False otherwise
         """
-        print(f"\n🎬 Generating Test Sample Files")
+        print("\n🎬 Generating Test Sample Files")
         print(f"   Timecode: {self.timecode}")
         print(f"   Duration: {self.duration}s")
         print(f"   Output: {self.output_prefix}_*\n")
@@ -294,19 +291,19 @@ class TestSampleGenerator:
             self.cleanup_intermediate_files()
         
         # Print summary
-        print(f"\n✅ Test sample generation complete!")
-        print(f"\nGenerated files:")
+        print("\n✅ Test sample generation complete!")
+        print("\nGenerated files:")
         print(f"  • {self.test_video_file} (MAIN TEST FILE)")
         
         if not cleanup:
             print(f"  • {self.ltc_audio_file} (LTC audio)")
             print(f"  • {self.tone_audio_file} (Tone audio)")
         
-        print(f"\nNext steps:")
-        print(f"  1. Test the converter:")
+        print("\nNext steps:")
+        print("  1. Test the converter:")
         print(f"     python3 ltc_to_smpte.py {self.test_video_file}")
-        print(f"\n  2. Verify the output:")
-        print(f"     ffprobe -show_entries stream_tags=timecode output.mp4")
+        print("\n  2. Verify the output:")
+        print("     ffprobe -show_entries stream_tags=timecode output.mp4")
         print()
         
         return True
@@ -375,7 +372,7 @@ Examples:
     
     # Validate duration
     if args.duration < 1:
-        print(f"❌ Error: Duration must be at least 1 second")
+        print("❌ Error: Duration must be at least 1 second")
         sys.exit(1)
     
     # Generate test samples

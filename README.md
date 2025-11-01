@@ -390,5 +390,3 @@ timecode_gui.exe                            # Windows GUI
 If you see errors about `ffmpeg` not found, install it via your platform package manager (see earlier prerequisites section).
 
 Gatekeeper / SmartScreen: Binaries are unsigned; on macOS choose "Open Anyway" in System Settings if prompted. On Windows click "More info" then "Run anyway".
-
-
