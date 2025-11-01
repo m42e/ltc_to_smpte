@@ -424,12 +424,41 @@ class VideoProcessor:
                 print("✗ Failed to write SMPTE timecode to video", file=sys.stderr)
                 return False
 
-def check_prerequisites():
-    """Check if required external tools are available"""
-    for tool in ["ffmpeg", "ltcdump"]:
-        if not shutil.which(tool):
-            print(f"✗ Required tool '{tool}' not found in PATH.", file=sys.stderr)
-            sys.exit(1)
+def check_prerequisites(require_ltcdump: bool = False):
+    """Check if required external tools are available.
+
+    ffmpeg is required. ltcdump is optional (fallback decoder used if missing).
+    If require_ltcdump is True we will exit if ltcdump is unavailable.
+    """
+    if not shutil.which("ffmpeg"):
+        print("✗ Required tool 'ffmpeg' not found in PATH.", file=sys.stderr)
+        sys.exit(1)
+    if require_ltcdump and not shutil.which("ltcdump"):
+        print("✗ Required tool 'ltcdump' not found in PATH (set require_ltcdump=False to allow fallback).", file=sys.stderr)
+        sys.exit(1)
+    if not shutil.which("ltcdump"):
+        print("Note: 'ltcdump' not found – will use internal fallback decoder.")
+
+def process_video(input_path: str, output_path: Optional[str] = None, verbose: bool = False) -> bool:
+    """Convenience wrapper for GUI/CLI to process a single video.
+
+    If output_path is None, create one by inserting '_tc' before the extension.
+    Returns True on success, False otherwise.
+    """
+    check_prerequisites(require_ltcdump=False)
+    if output_path is None:
+        p = Path(input_path)
+        output_path = str(p.with_name(p.stem + '_tc' + p.suffix))
+    try:
+        processor = VideoProcessor(input_path)
+        success = processor.process(output_path)
+        return success
+    except Exception as e:
+        print(f"✗ Error processing video: {e}", file=sys.stderr)
+        if verbose:
+            import traceback
+            traceback.print_exc()
+        return False
 
 def main():
     parser = argparse.ArgumentParser(
@@ -441,32 +470,17 @@ def main():
     )
     parser.add_argument(
         "-o", "--output",
-        default="output_with_timecode.mp4",
-        help="Output video file path (default: output_with_timecode.mp4)"
+        default=None,
+        help="Output video file path (default: auto append _tc before extension)"
     )
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose output"
     )
-    
     args = parser.parse_args()
-    
-    check_prerequisites()
-    
-    try:
-        processor = VideoProcessor(args.input_file)
-        success = processor.process(args.output)
-        sys.exit(0 if success else 1)
-    except FileNotFoundError as e:
-        print(f"✗ {e}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"✗ Unexpected error: {e}", file=sys.stderr)
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        sys.exit(1)
+    success = process_video(args.input_file, args.output, verbose=args.verbose)
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
