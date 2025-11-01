@@ -1,0 +1,89 @@
+name: build-and-package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.14']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies (ffmpeg)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg python3-tk || true
+      - name: Install system dependencies (ffmpeg macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg || true
+      - name: Install system dependencies (ffmpeg Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y || echo 'ffmpeg install skipped'
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build CLI (PyInstaller)
+        run: pyinstaller --onefile --name ltc_to_smpte ltc_to_smpte.py
+
+      - name: Build GUI (PyInstaller)
+        run: pyinstaller --onefile --windowed --name timecode_gui timecode_gui.py
+
+      - name: Smoke test CLI
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then dist/ltc_to_smpte.exe --help || exit 1; else ./dist/ltc_to_smpte --help || exit 1; fi
+
+      - name: Import GUI module
+        run: python -c "import timecode_gui; print('GUI import OK')"
+
+      - name: Package artifacts
+        run: python scripts/package.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltc_to_smpte-${{ runner.os }}-${{ matrix.python-version }}
+          path: |
+            ltc_to_smpte_*_${{ runner.os == 'Windows' && 'amd64' || 'x86_64' }}.zip
+            dist/*
+
+  release:
+    name: release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List artifacts
+        run: ls -R artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            artifacts/**/ltc_to_smpte_*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

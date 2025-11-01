@@ -1,0 +1,39 @@
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyInstaller build directories
+build/
+dist/
+
+# PyInstaller spec files (if generated dynamically)
+*.spec
+
+# Distribution artifacts
+ltc_to_smpte_*.zip
+
+# Logs
+*.log
+
+# macOS Finder
+.DS_Store
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Coverage / test
+.coverage
+htmlcov/
+
+# Wheels / eggs
+*.egg-info/
+*.egg
+
+build_dist/

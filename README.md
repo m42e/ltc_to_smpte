@@ -7,6 +7,7 @@ Fast, lossless metadata injection for professional workflows (edit conforming, b
 ---
 
 ## Table of Contents
+
 1. [Features](#features)
 2. [How It Works](#how-it-works)
 3. [Prerequisites](#prerequisites)
@@ -20,6 +21,8 @@ Fast, lossless metadata injection for professional workflows (edit conforming, b
 11. [License / Attribution](#license--attribution)
 12. [Install Dependencies](#install-dependencies)
 13. [Quick Start (TL;DR)](#quick-start-tldr)
+14. [GUI Usage](#gui-usage)
+15. [Binary Distribution](#binary-distribution)
 
 ---
 
@@ -303,4 +306,89 @@ ffprobe -show_entries format_tags=timecode -of default=noprint_wrappers=1:nokey=
 ---
 
 > Need help or found an edge case? Open an issue or extend the script—contributions welcome.
+
+## GUI Usage
+
+A minimal cross‑platform GUI (`timecode_gui.py`) allows drag & drop (when `tkinterdnd2` is installed) or manual file selection.
+
+### Run
+
+```bash
+python timecode_gui.py
+```
+
+If using `uv`:
+
+```bash
+uv run timecode_gui.py
+```
+
+### Drag & Drop Support
+
+Drag & drop uses the optional package `tkinterdnd2`. Install it for enhanced UX:
+
+```bash
+uv pip install tkinterdnd2  # or: pip install tkinterdnd2
+```
+
+Without it, the GUI still works—use the "Select File" button.
+
+### Output Naming
+
+The output file is created next to the input with `_tc` inserted before the extension:
+
+```text
+input.mov -> input_tc.mov
+clip.mp4  -> clip_tc.mp4
+```
+
+### Notes
+
+- Requires `ffmpeg` in PATH.
+- `ltcdump` is optional; if missing, the internal fallback decoder is used (slower / less robust).
+- Processing runs in a background thread; status and log messages appear in the window.
+
+## Binary Distribution
+
+Pre-built zip bundles for macOS, Windows, and Linux are published on the GitHub Releases page (tagged `v*`). Each archive contains:
+
+```text
+ltc_to_smpte           # CLI executable
+timecode_gui           # GUI executable (or .exe on Windows)
+LICENSE
+README_DISTRIBUTION.md # Minimal usage & prerequisites
+CHECKSUMS.txt          # SHA256 hashes
+```
+
+All Python dependencies (numpy, optional tkinterdnd2 if installed during build) are statically bundled inside the executables via PyInstaller—no Python installation required.
+
+### External Tools Still Required
+
+- `ffmpeg` must be installed and available in your PATH.
+- `ltcdump` (from ltc-tools) is optional; if missing the internal fallback decoder is used.
+
+### Verify Integrity
+
+Run a checksum:
+
+```bash
+shasum -a 256 ltc_to_smpte  # macOS / Linux
+certutil -hashfile ltc_to_smpte.exe SHA256  # Windows (PowerShell)
+```
+
+Compare against `CHECKSUMS.txt`.
+
+### Run Binaries
+
+```bash
+./ltc_to_smpte input.mp4 -o output_tc.mp4   # macOS / Linux
+./timecode_gui                               # macOS / Linux GUI
+ltc_to_smpte.exe input.mp4 -o output_tc.mp4 # Windows
+timecode_gui.exe                            # Windows GUI
+```
+
+If you see errors about `ffmpeg` not found, install it via your platform package manager (see earlier prerequisites section).
+
+Gatekeeper / SmartScreen: Binaries are unsigned; on macOS choose "Open Anyway" in System Settings if prompted. On Windows click "More info" then "Run anyway".
+
 

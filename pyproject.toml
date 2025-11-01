@@ -1,0 +1,40 @@
+[project]
+name = "ltc-to-smpte"
+version = "0.1.0"
+description = "Extract LTC audio and inject SMPTE timecode metadata, with GUI."
+authors = [{name = "m42e"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.14"
+keywords = ["ltc", "smpte", "timecode", "ffmpeg"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "numpy>=1.26",
+    "tkinterdnd2>=0.3.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/m42e/ltc_to_smpte"
+Issues = "https://github.com/m42e/ltc_to_smpte/issues"
+
+[tool.pyinstaller]
+# Placeholder section for potential future config; PyInstaller itself doesn't read pyproject yet,
+# but we keep this for documentation purposes.
+
+[tool.bumpversion]
+current_version = "0.1.0"
+
+[tool.dist.meta]
+# Metadata for packaging script
+entry_cli = "ltc_to_smpte.py"
+entry_gui = "timecode_gui.py"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.16.0",
+]
+
