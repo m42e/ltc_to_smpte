@@ -460,9 +460,42 @@ def process_video(input_path: str, output_path: Optional[str] = None, verbose: b
             traceback.print_exc()
         return False
 
+def _gather_tool_info() -> str:
+    """Return a multi-line string describing discovered external tool binaries.
+
+    Included in --help epilog so users see what will be used at runtime.
+    """
+    lines: list[str] = ["External tools detected:"]
+    # ffmpeg
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path:
+        try:
+            r = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=5)
+            first = r.stdout.splitlines()[0] if r.stdout else "(no version output)"
+            lines.append(f"  ffmpeg: {ffmpeg_path} | {first}")
+        except Exception as e:  # pragma: no cover - diagnostics only
+            lines.append(f"  ffmpeg: {ffmpeg_path} | version query failed: {e}")
+    else:
+        lines.append("  ffmpeg: NOT FOUND in PATH")
+    # ltcdump (optional)
+    ltcdump_path = shutil.which("ltcdump")
+    if ltcdump_path:
+        try:
+            # ltcdump does not have a --version flag; capture first line of help output
+            r = subprocess.run(["ltcdump", "-h"], capture_output=True, text=True, timeout=5)
+            first = r.stdout.splitlines()[0] if r.stdout else "(no help output)"
+            lines.append(f"  ltcdump: {ltcdump_path} | {first}")
+        except Exception as e:  # pragma: no cover
+            lines.append(f"  ltcdump: {ltcdump_path} | help query failed: {e}")
+    else:
+        lines.append("  ltcdump: NOT FOUND (fallback decoder will be used)")
+    return "\n" + "\n".join(lines)
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract LTC audio from video's second stereo channel and write as SMPTE timecode"
+        description="Extract LTC audio from video's second stereo channel and write as SMPTE timecode",
+        epilog=_gather_tool_info(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "input_file",
